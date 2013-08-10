@@ -2,23 +2,37 @@
 #include "pebble_app.h"
 #include "pebble_fonts.h"
 
-
-#define TOTAL_DIGITS 10
- 
-
-#define TIME_ZONE_OFFSET 1
-
-#define MY_UUID { 0xC0, 0x2B, 0x17, 0x4B, 0xF0, 0x4B, 0x47, 0xFC, 0xA2, 0x84, 0x2C, 0x5E, 0x30, 0x44, 0x97, 0xA8 }
+#define MY_UUID {0x71, 0x12, 0xD6, 0x24, 0x65, 0x55, 0x42, 0x79, 0x89, 0xAE, 0xC0, 0x86, 0xE9, 0x36, 0x94, 0x27}
 PBL_APP_INFO(MY_UUID,
-             "LCARSV1", "My Pebble Faces",
-             0, 1, /* App version */
+             "LCARS v1", "Slayer1551",
+             2, 0, /* App major/minor version */
              RESOURCE_ID_IMAGE_MENU_ICON,
              APP_INFO_WATCH_FACE);
 
 Window window;
+
+
 BmpContainer background_image;
-Layer display_layer;
-TextLayer text_unix;
+
+//BmpContainer meter_bar_image;
+
+// TODO: Handle 12/24 mode preference when it's exposed.
+
+
+
+const int DAY_NAME_IMAGE_RESOURCE_IDS[] = {
+    RESOURCE_ID_IMAGE_DAY_NAME_SUN,
+    RESOURCE_ID_IMAGE_DAY_NAME_MON,
+    RESOURCE_ID_IMAGE_DAY_NAME_TUE,
+    RESOURCE_ID_IMAGE_DAY_NAME_WED,
+    RESOURCE_ID_IMAGE_DAY_NAME_THU,
+    RESOURCE_ID_IMAGE_DAY_NAME_FRI,
+    RESOURCE_ID_IMAGE_DAY_NAME_SAT
+};
+
+BmpContainer day_name_image;
+
+
 const int DATENUM_IMAGE_RESOURCE_IDS[] = {
     RESOURCE_ID_IMAGE_DATENUM_0,
     RESOURCE_ID_IMAGE_DATENUM_1,
@@ -36,6 +50,7 @@ const int DATENUM_IMAGE_RESOURCE_IDS[] = {
 #define TOTAL_DATE_DIGITS 2
 BmpContainer date_digits_images[TOTAL_DATE_DIGITS];
 
+
 const int BIG_DIGIT_IMAGE_RESOURCE_IDS[] = {
     RESOURCE_ID_IMAGE_NUM_0,
     RESOURCE_ID_IMAGE_NUM_1,
@@ -48,19 +63,13 @@ const int BIG_DIGIT_IMAGE_RESOURCE_IDS[] = {
     RESOURCE_ID_IMAGE_NUM_8,
     RESOURCE_ID_IMAGE_NUM_9
 };
-const int DAY_NAME_IMAGE_RESOURCE_IDS[] = {
-    RESOURCE_ID_IMAGE_DAY_NAME_SUN,
-    RESOURCE_ID_IMAGE_DAY_NAME_MON,
-    RESOURCE_ID_IMAGE_DAY_NAME_TUE,
-    RESOURCE_ID_IMAGE_DAY_NAME_WED,
-    RESOURCE_ID_IMAGE_DAY_NAME_THU,
-    RESOURCE_ID_IMAGE_DAY_NAME_FRI,
-    RESOURCE_ID_IMAGE_DAY_NAME_SAT
-};
-
-BmpContainer day_name_image;
 
 
+#define TOTAL_TIME_DIGITS 4
+BmpContainer time_digits_images[TOTAL_TIME_DIGITS];
+
+#define TIME_ZONE_OFFSET 1
+#define TOTAL_DIGITS 10
 BmpContainer digits[TOTAL_DIGITS];
 
 const int BLOCK_NUMBER[] = {
@@ -88,8 +97,7 @@ const int COLUMN[] = {
     111
 };
 
-#define TOTAL_TIME_DIGITS 4
-BmpContainer time_digits_images[TOTAL_TIME_DIGITS];
+Layer display_layer;
 
 /* These are the variables we defined in our JavaScript earlier.  This will save
  us trying to work out where the cells should go. */
@@ -105,7 +113,6 @@ BmpContainer time_digits_images[TOTAL_TIME_DIGITS];
 GRect cell_location(int col, int row) {
     return GRect((col * (CELL_WIDTH + CELL_PADDING_RIGHT)) ,(CELL_OFFSET - (row * (CELL_HEIGHT + CELL_PADDING_TOP))), CELL_WIDTH, CELL_HEIGHT);
 }
-
 
 void set_container_image(BmpContainer *bmp_container, const int resource_id, GPoint origin) {
     
@@ -123,14 +130,6 @@ void set_container_image(BmpContainer *bmp_container, const int resource_id, GPo
 }
 
 
-int my_pow(int base, int exp) {
-    int result = 1;
-    for(int i=exp; i>0; i--) {
-        result = result * base;
-    }
-    return result;
-}
-
 unsigned short get_display_hour(unsigned short hour) {
     
     if (clock_is_24h_style()) {
@@ -144,10 +143,22 @@ unsigned short get_display_hour(unsigned short hour) {
     
 }
 
+int my_pow(int base, int exp) {
+    int result = 1;
+    for(int i=exp; i>0; i--) {
+        result = result * base;
+    }
+    return result;
+}
+
 void update_display(PblTm *current_time) {
     // TODO: Only update changed values?
     
-    set_container_image(&day_name_image, DAY_NAME_IMAGE_RESOURCE_IDS[current_time->tm_wday], GPoint(77, 3));
+    set_container_image(&day_name_image, DAY_NAME_IMAGE_RESOURCE_IDS[current_time->tm_wday], GPoint(79, 3));
+    
+    // TODO: Remove leading zero?
+    set_container_image(&date_digits_images[0], DATENUM_IMAGE_RESOURCE_IDS[current_time->tm_mday/10], GPoint(111, 3));
+    set_container_image(&date_digits_images[1], DATENUM_IMAGE_RESOURCE_IDS[current_time->tm_mday%10], GPoint(118, 3));
     
     
     unsigned short display_hour = get_display_hour(current_time->tm_hour);
@@ -158,10 +169,7 @@ void update_display(PblTm *current_time) {
     
     set_container_image(&time_digits_images[2], BIG_DIGIT_IMAGE_RESOURCE_IDS[current_time->tm_min/10], GPoint(86, 30));
     set_container_image(&time_digits_images[3], BIG_DIGIT_IMAGE_RESOURCE_IDS[current_time->tm_min%10], GPoint(110, 30));
-    set_container_image(&date_digits_images[0], DATENUM_IMAGE_RESOURCE_IDS[current_time->tm_mday/10], GPoint(111, 3));
-    set_container_image(&date_digits_images[1], DATENUM_IMAGE_RESOURCE_IDS[current_time->tm_mday%10], GPoint(118, 3));
     
-        
     unsigned int unix_time;
     /* Convert time to seconds since epoch. */
     unix_time = ((0-TIME_ZONE_OFFSET)*3600) + /* time zone offset */
@@ -184,14 +192,11 @@ void update_display(PblTm *current_time) {
         set_container_image(&digits[i], BLOCK_NUMBER[digit_value], GPoint(40 + (i * 9), 90)); /* Now we set this digit. */
     }
     
- 
     
 }
 
 
 void handle_minute_tick(AppContextRef ctx, PebbleTickEvent *t) {
-    
-    (void)ctx;
     
     update_display(t->tick_time);
 }
@@ -200,18 +205,16 @@ void handle_second_tick(AppContextRef ctx, PebbleTickEvent *t) {
     //(void)t;
     (void)ctx;
     
-        
+    
     update_display(t->tick_time);
     
-     
     
     
-
+    
+    
     /* Tell the application to rerender the layer */
     layer_mark_dirty(&display_layer);
 }
-
-
 void display_layer_update_callback(Layer *me, GContext* ctx) {
     (void)me;
     
@@ -226,7 +229,7 @@ void display_layer_update_callback(Layer *me, GContext* ctx) {
     for (int cell_column_index = 0; cell_column_index < display_hour/10; cell_column_index++) {
         
         
-         graphics_fill_rect(ctx, cell_location(0, cell_column_index), 0, GCornerNone);
+        graphics_fill_rect(ctx, cell_location(0, cell_column_index), 0, GCornerNone);
     }
     for (int cell_column_index = 0; cell_column_index < display_hour%10; cell_column_index++) {
         
@@ -255,39 +258,33 @@ void display_layer_update_callback(Layer *me, GContext* ctx) {
         
         graphics_fill_rect(ctx, cell_location(5, cell_column_index), 0, GCornerNone);
     }
-
-}
-
-void handle_init(AppContextRef app_ctx) {
-
-
-  window_init(&window, "LCARS");
-  window_stack_push(&window, true /* Animated */);
     
-    // If you neglect to call this, all `resource_get_handle()` requests
-    // will return NULL.
+}
+void handle_init(AppContextRef ctx) {
+    memset(&background_image, 0, sizeof(background_image));
+    memset(&day_name_image, 0, sizeof(day_name_image));
+    memset(&date_digits_images, 0, sizeof(date_digits_images));
+    memset(&time_digits_images, 0, sizeof(time_digits_images));
+    memset(&digits, 0, sizeof(digits));
+    memset(&display_layer, 0, sizeof(display_layer));
+    
+    
+    window_init(&window, "LCAR");
+    window_stack_push(&window, true /* Animated */);
+    
     resource_init_current_app(&APP_RESOURCES);
     
     bmp_init_container(RESOURCE_ID_IMAGE_BACKGROUND, &background_image);
-    
-    
     layer_init(&display_layer, GRect(43, 110, 82, 35));
-    
     display_layer.update_proc = &display_layer_update_callback;
+    
+    layer_add_child(&window.layer, &background_image.layer.layer);
+    
     
     layer_add_child(&window.layer, &background_image.layer.layer);
     layer_add_child(&window.layer,&display_layer);
     
-    
-    text_layer_init(&text_unix, GRect(40, 100, 98 /* width */, 163 /* height */));
-    text_layer_set_text_color(&text_unix, GColorWhite);
-    text_layer_set_background_color(&text_unix, GColorClear);
-    
-    
-    
-    layer_add_child(&window.layer, &text_unix.layer);
-    
-    
+ 
     
     
     // Avoids a blank screen on watch start.
@@ -295,44 +292,38 @@ void handle_init(AppContextRef app_ctx) {
     
     get_time(&tick_time);
     update_display(&tick_time);
+    
 }
 
 
 void handle_deinit(AppContextRef ctx) {
-    (void)ctx;
     
     bmp_deinit_container(&background_image);
+    
     bmp_deinit_container(&day_name_image);
     
-
     for (int i = 0; i < TOTAL_DATE_DIGITS; i++) {
         bmp_deinit_container(&date_digits_images[i]);
     }
-
+    
     for (int i = 0; i < TOTAL_TIME_DIGITS; i++) {
         bmp_deinit_container(&time_digits_images[i]);
     }
-    
-    
-    for (int i=0; i<TOTAL_DIGITS; i++) {
+    for (int i=0; i < TOTAL_DIGITS; i++) {
         bmp_deinit_container(&digits[i]);
     }
-    
 }
 
 
-// The main event/run loop for our app
 void pbl_main(void *params) {
     PebbleAppHandlers handlers = {
-        
-        // Handle app start
         .init_handler = &handle_init,
         .deinit_handler = &handle_deinit,
+        
         .tick_info = {
             .tick_handler = &handle_second_tick,
             .tick_units = SECOND_UNIT
         }
-        
     };
     app_event_loop(params, &handlers);
 }

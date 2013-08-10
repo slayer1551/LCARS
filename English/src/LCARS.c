@@ -14,7 +14,7 @@ Window window;
 
 BmpContainer background_image;
 
-BmpContainer meter_bar_image;
+//BmpContainer meter_bar_image;
 
 // TODO: Handle 12/24 mode preference when it's exposed.
 
@@ -261,6 +261,13 @@ void display_layer_update_callback(Layer *me, GContext* ctx) {
     
 }
 void handle_init(AppContextRef ctx) {
+    memset(&background_image, 0, sizeof(background_image));
+    memset(&day_name_image, 0, sizeof(day_name_image));
+    memset(&date_digits_images, 0, sizeof(date_digits_images));
+    memset(&time_digits_images, 0, sizeof(time_digits_images));
+    memset(&digits, 0, sizeof(digits));
+    memset(&display_layer, 0, sizeof(display_layer));
+    
     
     window_init(&window, "LCAR");
     window_stack_push(&window, true /* Animated */);
